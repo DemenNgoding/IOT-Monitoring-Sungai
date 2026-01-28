@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>River Monitoring</title>
+
+    <!-- Fonts: Inter for Apple-like Cleanliness -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- SF Symbols equivalent (Phosphor Icons) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="brand">
+                <i class="ph-fill ph-drop"></i>
+                <span>Monitoring Sungai</span>
+            </div>
+            <!-- <div class="status-indicator online">
+                <span class="pulse"></span> Connected
+            </div> -->
+        </div>
+    </nav>
+
+    <main class="dashboard-grid">
+
+        <!-- CARD 1: Water Level Analytics -->
+        <article class="card large-card water-card">
+            <div class="card-header">
+                <h3>Water Level</h3>
+                <span class="badge" id="level-status">Normal</span>
+            </div>
+
+            <div class="water-display">
+                <div class="metric">
+                    <span class="value" id="current-value">--</span>
+                    <span class="unit">cm</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="waterChart"></canvas>
+                </div>
+            </div>
+        </article>
+
+        <!-- CARD 2: Live Camera -->
+        <article class="card large-card stream-card">
+            <div class="card-header">
+                <h3>Live Feed</h3>
+                <button class="live-btn">
+                    <span class="dot"></span> LIVE
+                </button>
+            </div>
+            <div class="stream-container">
+                <img id="stream-view" src="/video-stream" alt="Live Stream"
+                    onerror="this.src='assets/no-signal.png'; this.parentElement.classList.add('offline')">
+                <div class="stream-overlay">
+                    <i class="ph-duotone ph-video-camera-slash"></i>
+                    <p>Camera Offline</p>
+                </div>
+            </div>
+        </article>
+
+        <!-- CARD 3: Recent Captures (Supabase) -->
+        <article class="card wide-card photos-card">
+            <div class="card-header">
+                <h3>Recent Captures</h3>
+            </div>
+            <div class="photo-scroll" id="photo-gallery">
+                <!-- Javascript will populate this -->
+                <div class="photo-item skeleton"></div>
+                <div class="photo-item skeleton"></div>
+                <div class="photo-item skeleton"></div>
+                <div class="photo-item skeleton"></div>
+            </div>
+        </article>
+
+    </main>
+
+    <!-- Image Modal -->
+    <div id="image-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="close-modal" id="close-modal">&times;</button>
+            <img id="modal-img" src="" alt="Enlarged View">
+            <div class="modal-caption" id="modal-caption"></div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+
+</html>
