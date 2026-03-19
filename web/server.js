@@ -17,19 +17,18 @@ app.use(express.json({ limit: '10mb' })); // Naikkan limit untuk base64 gambar
 app.use(express.static(path.join(__dirname, 'public')));
 
 wss.on('connection', (ws) => {
-    console.log('Client connected (ESP32 or Browser)');
+    console.log('Koneksi baru masuk dari link Traefik');
 
     ws.on('message', (data) => {
-        // Broadcast data dari pengirim (ESP32) ke semua penerima (Browser)
-        wss.clients.forEach((client) => {
-            if (client !== ws && client.readyState === WebSocket.OPEN) {
-                // Mengirimkan data binary gambar langsung
-                client.send(data);
-            }
-        });
+        // Jika data berupa Buffer (Gambar dari ESP32), sebar ke browser
+        if (Buffer.isBuffer(data) || data instanceof Uint8Array) {
+            wss.clients.forEach((client) => {
+                if (client !== ws && client.readyState === WebSocket.OPEN) {
+                    client.send(data);
+                }
+            });
+        }
     });
-
-    ws.on('close', () => console.log('Client disconnected'));
 });
 
 app.get('/api/water-levels', async (req, res) => {

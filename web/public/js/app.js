@@ -14,25 +14,13 @@ const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
 const wsUrl = `${protocol}://${window.location.host}`;
 const socket = new WebSocket(wsUrl);
 
-socket.onmessage = async (event) => {
-    // 1. Terima data binary (Blob) dari ESP32 via Server
-    const blob = event.data;
-    
-    // 2. Buat URL objek untuk menampilkan gambar
+socket.onmessage = (event) => {
+    const blob = event.data; // Menerima binary dari server
     const url = URL.createObjectURL(blob);
+    document.getElementById('stream-view').src = url;
     
-    // 3. Update element gambar
-    streamImg.src = url;
-
-    // 4. Update UI menjadi Online
-    streamContainer.classList.remove('offline');
-    statusBadge.classList.replace('offline', 'online');
-    statusText.textContent = "Camera Online";
-
-    // 5. Bebaskan memori setelah gambar dimuat
-    streamImg.onload = () => {
-        URL.revokeObjectURL(url);
-    };
+    // Hapus URL lama untuk mencegah memory leak
+    document.getElementById('stream-view').onload = () => URL.revokeObjectURL(url);
 };
 
 socket.onclose = () => {
