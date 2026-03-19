@@ -6,14 +6,6 @@ const { createClient } = require('@supabase/supabase-js');
 const { Server } = require("socket.io");
 const io = new Server(app.listen(PORT), { cors: { origin: "*" } });
 
-io.on("connection", (socket) => {
-    console.log("Koneksi baru:", socket.id);
-
-    socket.on("frame", (data) => {
-        socket.broadcast.emit("video-data", data); 
-    });
-});
-
 const app = express();
 const PORT = 3000;
 
@@ -23,6 +15,14 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 app.use(express.json({ limit: '10mb' })); // Naikkan limit untuk base64 gambar
 app.use(express.static(path.join(__dirname, 'public')));
+
+io.on("connection", (socket) => {
+    console.log("Koneksi baru:", socket.id);
+
+    socket.on("frame", (data) => {
+        socket.broadcast.emit("video-data", data); 
+    });
+});
 
 app.get('/api/water-levels', async (req, res) => {
     try {
