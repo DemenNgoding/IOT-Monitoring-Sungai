@@ -14,13 +14,21 @@ const socket = new WebSocket(wsUrl);
 
 socket.onmessage = (event) => {
     if (event.data instanceof Blob) {
+        // Buat URL dari blob yang diterima
         const url = URL.createObjectURL(event.data);
-        if (streamImg) streamImg.src = url;
         
-        // Hilangkan status offline jika ada gambar masuk
-        if (streamContainer) streamContainer.classList.remove('offline');
+        if (streamImg) {
+            streamImg.src = url;
+        }
         
-        streamImg.onload = () => URL.revokeObjectURL(url);
+        if (streamContainer) {
+            streamContainer.classList.remove('offline');
+        }
+
+        // Penting: Hapus URL lama dari memori setelah gambar tampil
+        streamImg.onload = () => {
+            URL.revokeObjectURL(url);
+        };
     }
 };
 
