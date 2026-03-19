@@ -1,8 +1,9 @@
 require('dotenv').config();
 const express = require('express');
 const WebSocket = require('ws');
-const path = require('path');
 const http = require('http');
+const path = require('path');
+
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();

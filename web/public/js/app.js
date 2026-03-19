@@ -6,28 +6,27 @@ const modalCaption = document.getElementById('modal-caption');
 const closeModal = document.getElementById('close-modal');
 const streamImg = document.getElementById('stream-view');
 const streamContainer = document.getElementById('stream-container');
-const statusBadge = document.getElementById('camera-status');
-const statusText = document.getElementById('status-text');
 
-// Otomatis menyesuaikan dengan IP VPS Dokploy kamu
+// Koneksi WebSocket
 const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
 const wsUrl = `${protocol}://${window.location.host}`;
 const socket = new WebSocket(wsUrl);
 
 socket.onmessage = (event) => {
-    const blob = event.data; // Menerima binary dari server
-    const url = URL.createObjectURL(blob);
-    document.getElementById('stream-view').src = url;
-    
-    // Hapus URL lama untuk mencegah memory leak
-    document.getElementById('stream-view').onload = () => URL.revokeObjectURL(url);
+    if (event.data instanceof Blob) {
+        const url = URL.createObjectURL(event.data);
+        if (streamImg) streamImg.src = url;
+        
+        // Hilangkan status offline jika ada gambar masuk
+        if (streamContainer) streamContainer.classList.remove('offline');
+        
+        streamImg.onload = () => URL.revokeObjectURL(url);
+    }
 };
 
 socket.onclose = () => {
-    // Jika koneksi putus, tampilkan status Offline
-    streamContainer.classList.add('offline');
-    statusBadge.classList.replace('online', 'offline');
-    statusText.textContent = "Camera Offline";
+    console.log("Koneksi kamera terputus");
+    if (streamContainer) streamContainer.classList.add('offline');
 };
 
 document.addEventListener('DOMContentLoaded', () => {

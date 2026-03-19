@@ -60,14 +60,12 @@
                     <span class="dot"></span> LIVE
                 </button>
             </div>
-            <div class="stream-container" class="stream-container offline">
-                <img id="stream-view" src="" alt="Live Stream"
-                    
-                <div class="stream-overlay">
-                    <i class="ph-duotone ph-video-camera-slash"></i>
-                    <p>Camera Offline</p>
-                </div>
+            <div id="stream-container" class="stream-container offline">
+                <img id="stream-view" src="" alt="Live Stream"> <div class="stream-overlay">
+                <i class="ph-duotone ph-video-camera-slash"></i>
+                <p>Camera Offline</p>
             </div>
+    </div>
         </article>
 
         <!-- CARD 3: Recent Captures (Supabase) -->
@@ -94,8 +92,6 @@
             <div class="modal-caption" id="modal-caption"></div>
         </div>
     </div>
-
-    <script src="/socket.io/socket.io.js"></script>
     <script src="js/app.js"></script>
 </body>
 
