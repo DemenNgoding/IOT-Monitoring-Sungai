@@ -3,12 +3,12 @@ const express = require('express');
 const http = require('http');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
-const { Server } = require("socket.io");
+// const { Server } = require("socket.io");
 
 const app = express();
 const PORT = 3000;
-const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
+// const server = http.createServer(app);
+// const io = new Server(server, { cors: { origin: "*" } });
 
 const supabaseUrl = "https://sravjzvbepyrbbzwuooo.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyYXZqenZiZXB5cmJiend1b29vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyMDQ2MzMsImV4cCI6MjA4MDc4MDYzM30.fQHfy_Url5VDa24SXpKWiM33H9clNGhHsy90f_4yN70";
@@ -17,17 +17,17 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 app.use(express.json({ limit: '10mb' })); // Naikkan limit untuk base64 gambar
 app.use(express.static(path.join(__dirname, 'public')));
 
-io.on("connection", (socket) => {
-    console.log("Koneksi baru:", socket.id);
+// io.on("connection", (socket) => {
+//     console.log("Koneksi baru:", socket.id);
 
-    socket.on("frame", (data) => {
-        socket.broadcast.emit("video-data", data); 
-    });
+//     socket.on("frame", (data) => {
+//         socket.broadcast.emit("video-data", data); 
+//     });
 
-    socket.on("disconnect", () => {
-        console.log("Client terputus:", socket.id);
-    });
-});
+//     socket.on("disconnect", () => {
+//         console.log("Client terputus:", socket.id);
+//     });
+// });
 
 app.get('/api/water-levels', async (req, res) => {
     try {
