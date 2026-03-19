@@ -61,7 +61,7 @@
                 </button>
             </div>
             <div class="stream-container">
-                <img id="stream-view" src="/video-stream" alt="Live Stream"
+                <img id="stream-view" src="" alt="Live Stream"
                     onerror="this.src='assets/no-signal.png'; this.parentElement.classList.add('offline')">
                 <div class="stream-overlay">
                     <i class="ph-duotone ph-video-camera-slash"></i>
@@ -95,6 +95,7 @@
         </div>
     </div>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script src="js/app.js"></script>
 </body>
 

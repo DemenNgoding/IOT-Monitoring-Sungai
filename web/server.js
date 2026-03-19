@@ -3,6 +3,16 @@ const express = require('express');
 const http = require('http');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
+const { Server } = require("socket.io");
+const io = new Server(app.listen(PORT), { cors: { origin: "*" } });
+
+io.on("connection", (socket) => {
+    console.log("Koneksi baru:", socket.id);
+
+    socket.on("frame", (data) => {
+        socket.broadcast.emit("video-data", data); 
+    });
+});
 
 const app = express();
 const PORT = 3000;
