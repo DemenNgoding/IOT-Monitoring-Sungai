@@ -45,6 +45,10 @@ const char* bucket_name = "Camera"; // Nama Bucket yang dibuat tadi
 unsigned long lastCaptureTime = 0;
 const int captureInterval = 10000; // 10 Detik
 
+const char* vps_host = "84.247.174.148";
+const int   vps_port = 3000;
+const char* stream_path = "/stream-upload";
+
 String uploadImageToSupabase(camera_fb_t* fb);
 String uploadLevelToSupabase(int level);
 
@@ -77,9 +81,9 @@ void setup() {
   // Konfigurasi Format
   config.frame_size = FRAMESIZE_QVGA;
   config.pixel_format = PIXFORMAT_JPEG; 
-  config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
+  config.grab_mode = CAMERA_GRAB_LATEST;
   config.fb_location = CAMERA_FB_IN_PSRAM;
-  config.jpeg_quality = 12; // 10-12 Kualitas bagus, 63 Buruk
+  config.jpeg_quality = 15; // 10-12 Kualitas bagus, 63 Buruk
   config.fb_count = 2;
 
   config.frame_size = FRAMESIZE_QVGA;
@@ -121,7 +125,9 @@ void setup() {
 void loop() {
 if (millis() - lastCaptureTime > captureInterval) {
     
-    // Ambil Gambar
+  streamVideoToVPS();
+  
+  // Ambil Gambar
     camera_fb_t * fb = esp_camera_fb_get();
     if (!fb) {
       Serial.println("Camera capture failed");
@@ -224,4 +230,55 @@ String uploadLevelToSupabase(int level) {
     http.end();
   }
   return "";
+}
+
+void streamVideoToVPS() {
+  WiFiClient client;
+
+  Serial.println("Connecting to VPS...");
+  if (!client.connect(vps_host, vps_port)) {
+    Serial.println("Connection failed. Retry in 3s...");
+    delay(3000);
+    return;
+  }
+
+  // Kirim HTTP header untuk multipart stream
+  String boundary = "----ESP32Boundary";
+  client.println("POST " + String(stream_path) + " HTTP/1.1");
+  client.println("Host: " + String(vps_host));
+  client.println("Content-Type: multipart/x-mixed-replace; boundary=" + boundary);
+  client.println("Transfer-Encoding: chunked");
+  client.println("Connection: keep-alive");
+  client.println();
+
+  Serial.println("Stream started.");
+
+  while (client.connected()) {
+    camera_fb_t* fb = esp_camera_fb_get();
+    if (!fb) {
+      Serial.println("Frame capture failed");
+      delay(100);
+      continue;
+    }
+
+    // Format MJPEG multipart frame
+    String header = "--" + boundary + "\r\n"
+                  + "Content-Type: image/jpeg\r\n"
+                  + "Content-Length: " + String(fb->len) + "\r\n\r\n";
+
+    // Kirim via chunked encoding
+    client.print(String(header.length(), HEX) + "\r\n");
+    client.print(header);
+    client.print("\r\n");
+
+    client.print(String(fb->len, HEX) + "\r\n");
+    client.write(fb->buf, fb->len);
+    client.print("\r\n");
+
+    esp_camera_fb_return(fb);
+    delay(100); // ~10 FPS, sesuaikan kebutuhan
+  }
+
+  Serial.println("Disconnected from VPS. Reconnecting...");
+  client.stop();
 }

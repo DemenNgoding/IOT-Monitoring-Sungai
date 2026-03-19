@@ -61,12 +61,8 @@
                 </button>
             </div>
             <div class="stream-container">
-                <img id="stream-view" src="" alt="Live Stream"
-                    onerror="this.src='assets/no-signal.png'; this.parentElement.classList.add('offline')">
-                <div class="stream-overlay">
-                    <i class="ph-duotone ph-video-camera-slash"></i>
-                    <p>Camera Offline</p>
-                </div>
+                <img id="stream-view" src="/stream" alt="Live Stream" onerror="handleStreamError()" onload="handleStreamLoad()">
+                <div id="stream-status" class="stream-badge offline">Offline</div>
             </div>
         </article>
 
