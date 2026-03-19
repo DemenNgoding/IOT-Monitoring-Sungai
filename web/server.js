@@ -4,10 +4,10 @@ const http = require('http');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 const { Server } = require("socket.io");
-const io = new Server(app.listen(PORT), { cors: { origin: "*" } });
 
 const app = express();
 const PORT = 3000;
+const io = new Server(app.listen(PORT), { cors: { origin: "*" } });
 
 const supabaseUrl = "https://sravjzvbepyrbbzwuooo.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyYXZqenZiZXB5cmJiend1b29vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyMDQ2MzMsImV4cCI6MjA4MDc4MDYzM30.fQHfy_Url5VDa24SXpKWiM33H9clNGhHsy90f_4yN70";
