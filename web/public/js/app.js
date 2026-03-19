@@ -9,8 +9,16 @@ const streamContainer = document.getElementById('stream-container');
 
 // Koneksi WebSocket
 const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-const wsUrl = `${protocol}://${window.location.host}`;
+const wsUrl = `ws://84.247.174.148:3000`;
 const socket = new WebSocket(wsUrl);
+
+socket.onerror = (error) => {
+    console.error("Detail Error WebSocket:", error);
+};
+
+socket.onopen = () => {
+    console.log("Berhasil terhubung ke Server WebSocket!");
+};
 
 socket.onmessage = (event) => {
     if (event.data instanceof Blob) {

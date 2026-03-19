@@ -8,7 +8,10 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const PORT = 3000;
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ 
+    server: server,
+    path: '/'
+ });
 
 const supabaseUrl = "https://sravjzvbepyrbbzwuooo.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyYXZqenZiZXB5cmJiend1b29vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyMDQ2MzMsImV4cCI6MjA4MDc4MDYzM30.fQHfy_Url5VDa24SXpKWiM33H9clNGhHsy90f_4yN70";
@@ -18,10 +21,9 @@ app.use(express.json({ limit: '10mb' })); // Naikkan limit untuk base64 gambar
 app.use(express.static(path.join(__dirname, 'public')));
 
 wss.on('connection', (ws) => {
-    console.log('Koneksi baru masuk dari link Traefik');
+    console.log('Koneksi WebSocket Berhasil dari:', req.socket.remoteAddress);
 
     ws.on('message', (data) => {
-        // Jika data berupa Buffer (Gambar dari ESP32), sebar ke browser
         if (Buffer.isBuffer(data) || data instanceof Uint8Array) {
             wss.clients.forEach((client) => {
                 if (client !== ws && client.readyState === WebSocket.OPEN) {
@@ -29,6 +31,10 @@ wss.on('connection', (ws) => {
                 }
             });
         }
+    });
+
+    ws.on('error', (error) => {
+        console.error('WebSocket Error di Server:', error);
     });
 });
 
