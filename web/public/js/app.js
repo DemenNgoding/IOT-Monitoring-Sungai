@@ -4,24 +4,6 @@ const modal = document.getElementById('image-modal');
 const modalImg = document.getElementById('modal-img');
 const modalCaption = document.getElementById('modal-caption');
 const closeModal = document.getElementById('close-modal');
-const socket = io(); // Connect ke VPS
-const streamView = document.getElementById('stream-view');
-const streamContainer = document.querySelector('.stream-container');
-
-// Menerima data frame dari server
-socket.on("new-frame", (base64Image) => {
-    // Hilangkan kelas offline jika ada data masuk
-    streamContainer.classList.remove('offline');
-    
-    // Update src gambar secara real-time
-    // Data yang diterima diasumsikan sudah dalam format base64
-    streamView.src = "data:image/jpeg;base64," + base64Image;
-});
-
-// Deteksi jika koneksi terputus
-socket.on("disconnect", () => {
-    streamContainer.classList.add('offline');
-});
 
 document.addEventListener('DOMContentLoaded', () => {
     initWaterChart();
