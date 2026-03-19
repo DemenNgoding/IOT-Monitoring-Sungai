@@ -60,9 +60,13 @@
                     <span class="dot"></span> LIVE
                 </button>
             </div>
-            <div class="stream-container">
-                <img id="stream-view" src="/stream" alt="Live Stream" onerror="handleStreamError()" onload="handleStreamLoad()">
-                <div id="stream-status" class="stream-badge offline">Offline</div>
+            <div class="stream-container" class="stream-container offline">
+                <img id="stream-view" src="" alt="Live Stream"
+                    
+                <div class="stream-overlay">
+                    <i class="ph-duotone ph-video-camera-slash"></i>
+                    <p>Camera Offline</p>
+                </div>
             </div>
         </article>
 

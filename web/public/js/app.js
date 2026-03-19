@@ -4,21 +4,43 @@ const modal = document.getElementById('image-modal');
 const modalImg = document.getElementById('modal-img');
 const modalCaption = document.getElementById('modal-caption');
 const closeModal = document.getElementById('close-modal');
+const streamImg = document.getElementById('stream-view');
+const streamContainer = document.getElementById('stream-container');
+const statusBadge = document.getElementById('camera-status');
+const statusText = document.getElementById('status-text');
 
-function handleStreamLoad() {
-  document.getElementById('stream-status').textContent = 'Live';
-  document.getElementById('stream-status').className = 'stream-badge live';
-}
+// Otomatis menyesuaikan dengan IP VPS Dokploy kamu
+const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+const wsUrl = `${protocol}://${window.location.host}`;
+const socket = new WebSocket(wsUrl);
 
-function handleStreamError() {
-  document.getElementById('stream-status').textContent = 'Offline';
-  document.getElementById('stream-status').className = 'stream-badge offline';
-  // Retry otomatis setiap 5 detik
-  setTimeout(() => {
-    const img = document.getElementById('live-stream');
-    img.src = '/stream?t=' + Date.now();
-  }, 5000);
-}
+socket.onmessage = async (event) => {
+    // 1. Terima data binary (Blob) dari ESP32 via Server
+    const blob = event.data;
+    
+    // 2. Buat URL objek untuk menampilkan gambar
+    const url = URL.createObjectURL(blob);
+    
+    // 3. Update element gambar
+    streamImg.src = url;
+
+    // 4. Update UI menjadi Online
+    streamContainer.classList.remove('offline');
+    statusBadge.classList.replace('offline', 'online');
+    statusText.textContent = "Camera Online";
+
+    // 5. Bebaskan memori setelah gambar dimuat
+    streamImg.onload = () => {
+        URL.revokeObjectURL(url);
+    };
+};
+
+socket.onclose = () => {
+    // Jika koneksi putus, tampilkan status Offline
+    streamContainer.classList.add('offline');
+    statusBadge.classList.replace('online', 'offline');
+    statusText.textContent = "Camera Offline";
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     initWaterChart();
