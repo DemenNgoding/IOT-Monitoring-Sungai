@@ -7,8 +7,8 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const PORT = 3000;
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
+const supabaseUrl = "https://sravjzvbepyrbbzwuooo.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyYXZqenZiZXB5cmJiend1b29vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyMDQ2MzMsImV4cCI6MjA4MDc4MDYzM30.fQHfy_Url5VDa24SXpKWiM33H9clNGhHsy90f_4yN70";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Middleware untuk membaca JSON dari ESP32
