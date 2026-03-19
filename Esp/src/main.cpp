@@ -111,8 +111,6 @@ void setup() {
   }
   Serial.println("\nWiFi connected");
 
-  webSocket.begin("84.247.174.148", 3000, "/socket.io/?EIO=4&transport=websocket");
-
   // startCameraServer();
 
   // Serial.print("Camera Ready! Use 'http://");
@@ -122,15 +120,9 @@ void setup() {
 
 void loop() {
 if (millis() - lastCaptureTime > captureInterval) {
-    webSocket.loop();
-
+    
     // Ambil Gambar
     camera_fb_t * fb = esp_camera_fb_get();
-    if(fb) {
-      webSocket.sendBIN(fb->buf, fb->len);
-      esp_camera_fb_return(fb);
-    }
-
     if (!fb) {
       Serial.println("Camera capture failed");
       return;
