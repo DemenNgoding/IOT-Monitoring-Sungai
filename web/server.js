@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const WebSocket = require('ws');
 const path = require('path');
+const http = require('http');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
@@ -98,6 +99,6 @@ function getDummyPhotos() {
     ];
 }
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0" ,() => {
     console.log(`Server running at http://localhost:${PORT}`);
 });
