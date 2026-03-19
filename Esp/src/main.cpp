@@ -1,17 +1,20 @@
 #include <Arduino.h>
+#include "esp_camera.h"
+#include <WiFi.h>
+#include "app_httpd.h" // Memanggil library yang kita buat di folder lib
+#include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 
-// 1. DEFINISI MODEM
-#define TINY_GSM_MODEM_SIM7600
+#define TINY_GSM_MODEM_A7672X 
+#define TINY_GSM_MODEM_HAS_SSL
+
 #include <TinyGsmClient.h>
 
-// =================================================================
-// 2. KONFIGURASI LOCALTUNNEL (GANTI BAGIAN INI!)
-// =================================================================
-// Masukkan domain Localtunnel Anda (TANPA https:// dan TANPA /)
-const char server[]   = "mmgfo-125-160-229-11.a.free.pinggy.link"; 
+// const char server[]   = "iot-river-monitoringsungai-omirwb-3a79f4-84-247-174-148.traefik.me"; 
+const char server[]   = "idaho-resumes-ipaq-partners.trycloudflare.com"; 
 
 // Localtunnel support PORT 80 (HTTP Biasa) -> Solusi anti ribet!
-const int  port       = 80; 
+const int  port       = 443; 
 const String resource = "/api/water-levels";
 
 // 3. PIN WAVESHARE ESP32-S3
@@ -25,7 +28,39 @@ const char pass[] = "3gprs";
 
 HardwareSerial SerialAT(1);
 TinyGsm        modem(SerialAT);
-TinyGsmClient  client(modem); // Client Polos (Non-Secure)
+TinyGsmClientSecure  client(modem); // Client Polos (Non-Secure)
+
+// ==========================================
+// PIN MAPPING: WAVESHARE ESP32-S3-SIM7670G
+// ==========================================
+#define PWDN_GPIO_NUM     -1
+#define RESET_GPIO_NUM    -1
+#define XCLK_GPIO_NUM     34
+#define SIOD_GPIO_NUM     15
+#define SIOC_GPIO_NUM     16
+#define Y9_GPIO_NUM       14
+#define Y8_GPIO_NUM       13
+#define Y7_GPIO_NUM       12
+#define Y6_GPIO_NUM       11
+#define Y5_GPIO_NUM       10
+#define Y4_GPIO_NUM       9
+#define Y3_GPIO_NUM       8
+#define Y2_GPIO_NUM       7
+#define VSYNC_GPIO_NUM    36
+#define HREF_GPIO_NUM     35
+#define PCLK_GPIO_NUM     37
+
+// ===========================
+// SUPABASE SETTING
+// ===========================
+const char* supabase_url = "https://sravjzvbepyrbbzwuooo.supabase.co";
+const char* supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyYXZqenZiZXB5cmJiend1b29vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyMDQ2MzMsImV4cCI6MjA4MDc4MDYzM30.fQHfy_Url5VDa24SXpKWiM33H9clNGhHsy90f_4yN70";
+const char* bucket_name = "Camera"; // Nama Bucket yang dibuat tadi
+
+unsigned long lastCaptureTime = 0;
+const int captureInterval = 10000; // 10 Detik
+
+String uploadImageToSupabase(camera_fb_t* fb);
 
 void modemPowerOn() {
   pinMode(MODEM_PWRKEY, OUTPUT);
@@ -36,8 +71,8 @@ void modemPowerOn() {
 
 void setup() {
   Serial.begin(115200);
-  delay(1000);
-  modemPowerOn();
+
+  modemPowerOn();   
   SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
 
   Serial.println("\n--- SYSTEM START (LOCALTUNNEL MODE) ---");
@@ -53,52 +88,126 @@ void setup() {
     while(true);
   }
   Serial.println("Terhubung!");
-}
 
-void loop() {
-  int waterLevel = random(0, 250);
-  String payload = "{\"level\":" + String(waterLevel) + "}";
+  camera_config_t config;
+  config.ledc_channel = LEDC_CHANNEL_0;
+  config.ledc_timer = LEDC_TIMER_0;
+  config.pin_d0 = Y2_GPIO_NUM;
+  config.pin_d1 = Y3_GPIO_NUM;
+  config.pin_d2 = Y4_GPIO_NUM;
+  config.pin_d3 = Y5_GPIO_NUM;
+  config.pin_d4 = Y6_GPIO_NUM;
+  config.pin_d5 = Y7_GPIO_NUM;
+  config.pin_d6 = Y8_GPIO_NUM;
+  config.pin_d7 = Y9_GPIO_NUM;
+  config.pin_xclk = XCLK_GPIO_NUM;
+  config.pin_pclk = PCLK_GPIO_NUM;
+  config.pin_vsync = VSYNC_GPIO_NUM;
+  config.pin_href = HREF_GPIO_NUM;
+  config.pin_sccb_sda = SIOD_GPIO_NUM;
+  config.pin_sccb_scl = SIOC_GPIO_NUM;
+  config.pin_pwdn = PWDN_GPIO_NUM;
+  config.pin_reset = RESET_GPIO_NUM;
+  config.xclk_freq_hz = 20000000; // 20MHz stabil untuk streaming
+  
+  // Konfigurasi Format
+  config.frame_size = FRAMESIZE_QVGA;
+  config.pixel_format = PIXFORMAT_JPEG; 
+  config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
+  config.fb_location = CAMERA_FB_IN_PSRAM;
+  config.jpeg_quality = 12; // 10-12 Kualitas bagus, 63 Buruk
+  config.fb_count = 2;
 
-  Serial.println("\n------------------------------------------------");
-  Serial.print("Connecting to: "); Serial.println(server);
+  config.frame_size = FRAMESIZE_QVGA;
+  config.fb_location = CAMERA_FB_IN_DRAM;
 
-  // 1. KONEKSI TCP (Port 80)
-  if (!client.connect(server, port)) {
-    Serial.println("❌ Gagal Connect. Pastikan URL Localtunnel benar.");
-    delay(5000);
+  // Init Kamera
+  esp_err_t err = esp_camera_init(&config);
+  if (err != ESP_OK) {
+    Serial.printf("Camera init failed with error 0x%x", err);
     return;
   }
 
-  Serial.println("Terhubung! Mengirim Data...");
-
-  // 2. RAKIT PAKET HTTP MANUAL
-  // Header bypass-tunnel-reminder penting untuk Localtunnel
-  String httpRequest = "";
-  httpRequest += "POST " + resource + " HTTP/1.1\r\n";
-  httpRequest += "Host: " + String(server) + "\r\n";
-  httpRequest += "Content-Type: application/json\r\n";
-  httpRequest += "Connection: close\r\n";
-  httpRequest += "Bypass-Tunnel-Reminder: true\r\n"; // Header Khusus Localtunnel
-  httpRequest += "Content-Length: " + String(payload.length()) + "\r\n";
-  httpRequest += "\r\n";
-  httpRequest += payload;
-
-  // 3. KIRIM
-  client.print(httpRequest);
-
-  // 4. BACA RESPON
-  unsigned long timeout = millis();
-  while (client.connected() && millis() - timeout < 10000) {
-    if (client.available()) {
-      String line = client.readStringUntil('\n');
-      Serial.println(line); // Tampilkan respon server
-      timeout = millis();
-      
-      // Jika muncul "HTTP/1.1 200 OK", berarti sukses!
-    }
+  // Adjust Sensor (Opsional: Memperbaiki warna OV2640)
+  sensor_t *s = esp_camera_sensor_get();
+  if (s->id.PID == OV3660_PID) {
+    // s->set_vflip(s, 1);
+    // s->set_brightness(s, 1);
+    // s->set_saturation(s, -2);
   }
+
+}
+
+void loop() {
+if (millis() - lastCaptureTime > captureInterval) {
+    
+    // Ambil Gambar
+    camera_fb_t * fb = esp_camera_fb_get();
+    if (!fb) {
+      Serial.println("Camera capture failed");
+      return;
+    }
+    
+    Serial.printf("Picture taken! Size: %d bytes. Uploading...\n", fb->len);
+
+    // Upload ke Supabase
+    String fileUrl = uploadImageToSupabase(fb);
+    
+    if (fileUrl != "") {
+      Serial.println("Upload Success!");
+      Serial.println("File URL: " + fileUrl);
+    } else {
+      Serial.println("Upload Failed.");
+    }
+
+    // Kembalikan memory
+    esp_camera_fb_return(fb);
+    
+    lastCaptureTime = millis();
+  }
+}
+
+String uploadImageToSupabase(camera_fb_t* fb) {
+  HTTPClient http;
+  WiFiClientSecure client;
   
-  client.stop();
-  Serial.println("Selesai. Tunggu 5 detik...");
-  delay(5000);
+  // 1. Setup Client Secure
+  client.setInsecure(); // Abaikan sertifikat
+  client.setTimeout(30000); // Timeout diperpanjang jadi 30 detik
+  
+  String filename = "foto_" + String(millis()) + ".jpg";
+  String url = String(supabase_url) + "/storage/v1/object/" + String(bucket_name) + "/" + filename;
+
+  Serial.print("Target URL: ");
+  Serial.println(url);
+
+  // Mulai koneksi
+  // Note: Gunakan client pointer agar settingan buffer di atas terpakai
+  if (http.begin(client, url)) {
+    http.addHeader("apikey", supabase_key);
+    http.addHeader("Authorization", "Bearer " + String(supabase_key));
+    http.addHeader("Content-Type", "image/jpeg");
+    http.addHeader("x-upsert", "true");
+
+    // Kirim Data
+    int httpResponseCode = http.POST(fb->buf, fb->len);
+
+    String payload = "";
+    if (httpResponseCode > 0) {
+      payload = http.getString();
+    }
+    
+    http.end(); // Tutup koneksi segera untuk membebaskan RAM
+
+    if (httpResponseCode == 200) {
+      return String(supabase_url) + "/storage/v1/object/public/" + String(bucket_name) + "/" + filename;
+    } else {
+      Serial.printf("Error code: %d\n", httpResponseCode);
+      Serial.println("Response: " + payload);
+      return "";
+    }
+  } else {
+    Serial.println("Unable to connect to Supabase");
+    return "";
+  }
 }

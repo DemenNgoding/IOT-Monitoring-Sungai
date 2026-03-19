@@ -7,6 +7,10 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const PORT = 3000;
 
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 // Middleware untuk membaca JSON dari ESP32
 app.use(express.json({
     verify: (req, res, buf) => {
@@ -86,7 +90,54 @@ app.get('/api/water-levels', (req, res) => {
     });
 });
 
-// ... (Sisa kode API Photos dan Proxy Stream biarkan tetap sama) ...
+// 2. DATA FOTO KAMERA (REAL SUPABASE STORAGE)
+app.get('/api/photos', async (req, res) => {
+    try {
+        // Listing file dari Bucket 'Camera'
+        // Limit 5 file terbaru
+        const { data, error } = await supabase
+            .storage
+            .from('Camera')
+            .list('', {
+                limit: 5,
+                sortBy: { column: 'created_at', order: 'desc' }
+            });
+
+        if (error) {
+            console.error('Supabase Storage Error:', error);
+            // Fallback ke dummy jika error (misal belum setup bucket)
+            return res.json(getDummyPhotos());
+        }
+
+        // Generate URL publik untuk setiap file
+        const photos = data.map(file => {
+            const { data: publicUrlData } = supabase
+                .storage
+                .from('Camera')
+                .getPublicUrl(file.name);
+
+            return {
+                name: file.name,
+                url: publicUrlData.publicUrl,
+                timestamp: new Date(file.created_at).toLocaleString('id-ID')
+            };
+        });
+
+        res.json(photos);
+
+    } catch (err) {
+        console.error("Server Error:", err);
+        res.json(getDummyPhotos());
+    }
+});
+
+function getDummyPhotos() {
+    return [
+        { url: 'https://images.unsplash.com/photo-1549887552-93f954d1d960', timestamp: 'Demo Photo 1' },
+        { url: 'https://images.unsplash.com/photo-1506157786151-b8491531f063', timestamp: 'Demo Photo 2' },
+        { url: 'https://images.unsplash.com/photo-1533228876829-d65c1cc603d1', timestamp: 'Demo Photo 3' }
+    ];
+}
 
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
