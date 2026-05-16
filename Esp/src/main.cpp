@@ -35,6 +35,9 @@ const char *password = "alfian12";
 // const char *ssid = "Workshop";
 // const char *password = "workshop525";
 
+const char* ws_host = "iot-river-monitoringsungai-omirwb-3a79f4-84-247-174-148.traefik.me"; // Ganti dengan domain Dokploy
+const int   ws_port = 80; // Gunakan 80 jika http, atau 443 jika https (perlu SSL)
+
 // ===========================
 // SUPABASE SETTING
 // ===========================
@@ -44,10 +47,6 @@ const char* bucket_name = "Camera"; // Nama Bucket yang dibuat tadi
 
 unsigned long lastCaptureTime = 0;
 const int captureInterval = 10000; // 10 Detik
-
-const char* vps_host = "84.247.174.148";
-const int   vps_port = 3000;
-const char* stream_path = "/stream-upload";
 
 String uploadImageToSupabase(camera_fb_t* fb);
 String uploadLevelToSupabase(int level);
@@ -115,6 +114,9 @@ void setup() {
   }
   Serial.println("\nWiFi connected");
 
+  webSocket.begin(ws_host, ws_port, "/");
+  webSocket.setReconnectInterval(5000);
+
   // startCameraServer();
 
   // Serial.print("Camera Ready! Use 'http://");
@@ -123,11 +125,22 @@ void setup() {
 }
 
 void loop() {
-if (millis() - lastCaptureTime > captureInterval) {
-    
-  streamVideoToVPS();
+
+  // 1. WebSocket loop HARUS ada di paling luar agar koneksi terjaga
+  webSocket.loop();
+
+  // 2. Logika untuk Stream Video (Cepat/Real-time)
+  if (webSocket.isConnected()) {
+    camera_fb_t * fb = esp_camera_fb_get();
+    if (fb) {
+      webSocket.sendBIN(fb->buf, fb->len);
+      esp_camera_fb_return(fb);
+    }
+  }
   
-  // Ambil Gambar
+  if (millis() - lastCaptureTime > captureInterval) {
+
+    // Ambil Gambar
     camera_fb_t * fb = esp_camera_fb_get();
     if (!fb) {
       Serial.println("Camera capture failed");
@@ -151,7 +164,6 @@ if (millis() - lastCaptureTime > captureInterval) {
 
     int currentLevel = random(10, 300);
     uploadLevelToSupabase(currentLevel);
-    
     
     lastCaptureTime = millis();
   }
@@ -230,55 +242,4 @@ String uploadLevelToSupabase(int level) {
     http.end();
   }
   return "";
-}
-
-void streamVideoToVPS() {
-  WiFiClient client;
-
-  Serial.println("Connecting to VPS...");
-  if (!client.connect(vps_host, vps_port)) {
-    Serial.println("Connection failed. Retry in 3s...");
-    delay(3000);
-    return;
-  }
-
-  // Kirim HTTP header untuk multipart stream
-  String boundary = "----ESP32Boundary";
-  client.println("POST " + String(stream_path) + " HTTP/1.1");
-  client.println("Host: " + String(vps_host));
-  client.println("Content-Type: multipart/x-mixed-replace; boundary=" + boundary);
-  client.println("Transfer-Encoding: chunked");
-  client.println("Connection: keep-alive");
-  client.println();
-
-  Serial.println("Stream started.");
-
-  while (client.connected()) {
-    camera_fb_t* fb = esp_camera_fb_get();
-    if (!fb) {
-      Serial.println("Frame capture failed");
-      delay(100);
-      continue;
-    }
-
-    // Format MJPEG multipart frame
-    String header = "--" + boundary + "\r\n"
-                  + "Content-Type: image/jpeg\r\n"
-                  + "Content-Length: " + String(fb->len) + "\r\n\r\n";
-
-    // Kirim via chunked encoding
-    client.print(String(header.length(), HEX) + "\r\n");
-    client.print(header);
-    client.print("\r\n");
-
-    client.print(String(fb->len, HEX) + "\r\n");
-    client.write(fb->buf, fb->len);
-    client.print("\r\n");
-
-    esp_camera_fb_return(fb);
-    delay(100); // ~10 FPS, sesuaikan kebutuhan
-  }
-
-  Serial.println("Disconnected from VPS. Reconnecting...");
-  client.stop();
 }
